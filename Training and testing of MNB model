@@ -1,0 +1,55 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import re
+import nltk
+from nltk.corpus import stopwords
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, f1_score, classification_report, confusion_matrix
+import numpy as np
+import joblib
+
+# Load the dataset
+data = pd.read_csv("/content/Modified_file.csv")
+
+
+# Preprocess the data
+data = data[['Sentiment', 'Review']]
+data = data.rename(columns={'Sentiment': 'label', 'Review': 'text'})
+
+# Remove rows with NaN values in 'text' and 'label' columns
+data = data.dropna(subset=['text', 'label'])
+
+# Split the data into features and labels
+X = data['text']
+y = data['label']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Create a TF-IDF vectorizer
+vectorizer = TfidfVectorizer()
+
+# Fit the vectorizer to the training data and transform both the training and testing data
+X_train_vec = vectorizer.fit_transform(X_train)
+X_test_vec = vectorizer.transform(X_test)
+
+# Train a Multinomial Naive Bayes classifier
+mnb = MultinomialNB(alpha=0.8, fit_prior=True, force_alpha=True)
+mnb.fit(X_train_vec, y_train)
+
+# Evaluate the Multinomial Naive Bayes model
+y_pred_mnb = mnb.predict(X_test_vec)
+accuracy_mnb = accuracy_score(y_test, y_pred_mnb)
+f1_mnb = f1_score(y_test, y_pred_mnb, average='weighted')
+print("Multinomial Naive Bayes - Accuracy:", accuracy_mnb)
+print("Multinomial Naive Bayes - F1-score:", f1_mnb)
+print("Multinomial Naive Bayes - Classification Report:")
+print(classification_report(y_test, y_pred_mnb))
+
+# Save the TF-IDF vectorizer
+joblib.dump(vectorizer, 'tfidf_vectorizer.pkl')
+
+# Save the Multinomial Naive Bayes model
+joblib.dump(mnb, 'mnb_model.pkl')
